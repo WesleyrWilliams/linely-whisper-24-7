@@ -1,4 +1,4 @@
 flask==2.3.3
-whisper-openai==20231117
+openai-whisper==20231117
 torch==2.0.1
 numpy==1.24.3
