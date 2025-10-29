@@ -3,7 +3,7 @@ services:
     name: linely-whisper-24-7
     env: python
     plan: free
-    buildCommand: pip install --upgrade pip setuptools<81 wheel && PIP_NO_BUILD_ISOLATION=1 pip install -r requirements.txt
+    buildCommand: bash render-build.sh
     startCommand: python render_whisper.py
     envVars:
       - key: PYTHON_VERSION
