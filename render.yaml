@@ -7,4 +7,6 @@ services:
     startCommand: python render_whisper.py
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11.0
+        value: 3.9.0
+      - key: PYTORCH_CUDA_ALLOC_CONF
+        value: max_split_size_mb:128

@@ -9,9 +9,20 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-logger.info("🚀 Loading Whisper model for 24/7 Linely service...")
-model = whisper.load_model("base")
-logger.info("✅ Whisper ready - 24/7 active!")
+# Initialize model as None, load on first request
+model = None
+
+def load_model():
+    global model
+    if model is None:
+        try:
+            logger.info("🚀 Loading Whisper model for 24/7 Linely service...")
+            # Use tiny model for free tier deployment
+            model = whisper.load_model("tiny")
+            logger.info("✅ Whisper ready - 24/7 active!")
+        except Exception as e:
+            logger.error(f"❌ Failed to load Whisper model: {str(e)}")
+            raise e
 
 @app.route('/health', methods=['GET'])
 def health():
@@ -22,6 +33,9 @@ def transcribe():
     try:
         if 'audio' not in request.files:
             return {"error": "No audio file provided"}, 400
+        
+        # Load model on first request
+        load_model()
         
         audio_file = request.files['audio']
         logger.info(f"📝 Transcribing audio file: {audio_file.filename}")
