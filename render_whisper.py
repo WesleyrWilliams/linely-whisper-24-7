@@ -3,8 +3,8 @@ from faster_whisper import WhisperModel
 import tempfile
 import os
 import logging
-import soundfile as sf
 import numpy as np
+import wave
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -46,18 +46,50 @@ def transcribe():
         audio_file = request.files['audio']
         logger.info(f"📝 Transcribing audio file: {audio_file.filename}")
 
-        # Save upload to temp and decode with soundfile (works without ffmpeg)
-        with tempfile.NamedTemporaryFile(delete=False) as tmp:
+        # Only accept WAV to avoid external decoders
+        filename_lower = (audio_file.filename or "").lower()
+        if not filename_lower.endswith('.wav'):
+            return {"error": "Only .wav files are supported in this deployment"}, 400
+
+        # Save upload to temp and decode WAV using stdlib
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as tmp:
             audio_path = tmp.name
             audio_file.save(audio_path)
 
         try:
-            audio, sample_rate = sf.read(audio_path, dtype='float32', always_2d=False)
+            with wave.open(audio_path, 'rb') as wf:
+                sample_rate = wf.getframerate()
+                num_channels = wf.getnchannels()
+                sampwidth = wf.getsampwidth()
+                n_frames = wf.getnframes()
+                raw = wf.readframes(n_frames)
         finally:
             try:
                 os.unlink(audio_path)
             except Exception:
                 pass
+
+        # Convert raw PCM to float32 numpy
+        if sampwidth == 1:
+            dtype = np.uint8  # unsigned 8-bit
+            audio = (np.frombuffer(raw, dtype=dtype).astype(np.float32) - 128.0) / 128.0
+        elif sampwidth == 2:
+            dtype = np.int16
+            audio = np.frombuffer(raw, dtype=dtype).astype(np.float32) / 32768.0
+        elif sampwidth == 3:
+            # 24-bit little-endian
+            a = np.frombuffer(raw, dtype=np.uint8).reshape(-1, 3)
+            signed = (a[:,0].astype(np.int32) | (a[:,1].astype(np.int32) << 8) | (a[:,2].astype(np.int32) << 16))
+            signed = np.where(signed & 0x800000, signed - 0x1000000, signed)
+            audio = signed.astype(np.float32) / 8388608.0
+        elif sampwidth == 4:
+            dtype = np.int32
+            audio = np.frombuffer(raw, dtype=dtype).astype(np.float32) / 2147483648.0
+        else:
+            return {"error": f"Unsupported WAV bit depth (sample width {sampwidth})"}, 400
+
+        if num_channels > 1:
+            audio = audio.reshape(-1, num_channels).mean(axis=1)
 
         # Ensure mono
         if isinstance(audio, np.ndarray) and audio.ndim == 2:
