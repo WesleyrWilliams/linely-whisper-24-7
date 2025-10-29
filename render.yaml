@@ -3,10 +3,10 @@ services:
     name: linely-whisper-24-7
     env: python
     plan: free
-    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    buildCommand: pip install --upgrade pip setuptools<81 wheel && PIP_NO_BUILD_ISOLATION=1 pip install -r requirements.txt
     startCommand: python render_whisper.py
     envVars:
       - key: PYTHON_VERSION
-        value: 3.9.0
+        value: 3.11.9
       - key: PYTORCH_CUDA_ALLOC_CONF
         value: max_split_size_mb:128
