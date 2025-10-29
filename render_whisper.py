@@ -1,0 +1,46 @@
+from flask import Flask, request, jsonify
+import whisper
+import tempfile
+import os
+import logging
+
+# Setup logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+app = Flask(__name__)
+
+# Load model once when server starts
+logger.info("🚀 Loading Whisper model for 24/7 Linely service...")
+model = whisper.load_model("base")
+logger.info("✅ Whisper ready - 24/7 active!")
+
+@app.route('/health', methods=['GET'])
+def health():
+    return {"status": "active", "service": "linely-whisper-24-7"}
+
+@app.route('/transcribe', methods=['POST'])
+def transcribe():
+    try:
+        if 'audio' not in request.files:
+            return {"error": "No audio file provided"}, 400
+        
+        audio_file = request.files['audio']
+        logger.info(f"📝 Transcribing audio file: {audio_file.filename}")
+        
+        # Save to temp file
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as tmp:
+            audio_file.save(tmp.name)
+            result = model.transcribe(tmp.name)
+            os.unlink(tmp.name)  # Clean up
+        
+        logger.info(f"✅ Transcription complete: {result['text'][:50]}...")
+        return {"transcription": result["text"]}
+        
+    except Exception as e:
+        logger.error(f"❌ Transcription failed: {str(e)}")
+        return {"error": str(e)}, 500
+
+if __name__ == '__main__':
+    logger.info("🌟 Starting 24/7 Linely Whisper Service...")
+    app.run(host='0.0.0.0', port=5000, debug=False)

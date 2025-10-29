@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: linely-whisper-24-7
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python render_whisper.py
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.9.0
