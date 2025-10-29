@@ -29,18 +29,25 @@ echo "📋 Testing health endpoint..."
 curl -s http://localhost:5050/health | python3 -m json.tool
 
 # Create test audio
-echo "🎤 Creating test audio..."
+echo "🎤 Creating test audio (WAV)..."
 say "Hello this is Linely AI receptionist testing Whisper transcription" -o test_audio.aiff
+if command -v afconvert >/dev/null 2>&1; then
+  afconvert -f WAVE -d LEI16 test_audio.aiff test_audio.wav
+  rm -f test_audio.aiff
+else
+  echo "afconvert not found; using AIFF may fail (WAV-only server)."
+  mv test_audio.aiff test_audio.wav
+fi
 
 # Test transcription
 echo "📝 Testing transcription..."
 curl -X POST http://localhost:5050/transcribe \
-  -F "audio=@test_audio.aiff" \
+  -F "audio=@test_audio.wav" \
   -s | python3 -m json.tool
 
 # Clean up
 echo "🧹 Cleaning up..."
 kill $SERVER_PID 2>/dev/null || true
-rm -f test_audio.aiff
+rm -f test_audio.wav
 
 echo "✅ Local testing complete!"

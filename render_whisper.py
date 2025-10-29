@@ -11,6 +11,10 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
+# Hint cache dirs for model downloads in ephemeral environments
+os.environ.setdefault("HF_HOME", "/app/.cache/huggingface")
+os.environ.setdefault("XDG_CACHE_HOME", "/app/.cache")
+
 # Initialize model as None, load on first request (faster-whisper)
 model: WhisperModel | None = None
 
