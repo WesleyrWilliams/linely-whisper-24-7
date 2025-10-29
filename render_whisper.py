@@ -4,13 +4,11 @@ import tempfile
 import os
 import logging
 
-# Setup logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 
-# Load model once when server starts
 logger.info("🚀 Loading Whisper model for 24/7 Linely service...")
 model = whisper.load_model("base")
 logger.info("✅ Whisper ready - 24/7 active!")
@@ -28,11 +26,10 @@ def transcribe():
         audio_file = request.files['audio']
         logger.info(f"📝 Transcribing audio file: {audio_file.filename}")
         
-        # Save to temp file
         with tempfile.NamedTemporaryFile(delete=False, suffix='.wav') as tmp:
             audio_file.save(tmp.name)
             result = model.transcribe(tmp.name)
-            os.unlink(tmp.name)  # Clean up
+            os.unlink(tmp.name)
         
         logger.info(f"✅ Transcription complete: {result['text'][:50]}...")
         return {"transcription": result["text"]}
